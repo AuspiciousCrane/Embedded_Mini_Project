@@ -7,13 +7,13 @@ from umqttsimple import MQTTClient
 from neopixel import NeoPixel
 
 # WiFi Credentials
-SSID = "66WIFI-2.4GHZ"
-PWD = "0818316115"
+SSID = "SSID"
+PWD = "PASSWORD"
 
 # MQTT Config
 MQTT_SERVER = "iotdev.smartsensedesign.net"
-MQTT_USER = "chayut"
-MQTT_PWD = "iotnetwork@2023"
+MQTT_USER = "USER"
+MQTT_PWD = "PASSWORD"
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 
 SUB_TOPIC = "LOLICON/BUTTON"
