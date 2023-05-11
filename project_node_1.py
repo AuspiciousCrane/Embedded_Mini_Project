@@ -11,7 +11,7 @@ SSID = "SSID"
 PWD = "PASSWORD"
 
 # MQTT Config
-MQTT_SERVER = "iotdev.smartsensedesign.net"
+MQTT_SERVER = "SOME SERVER"
 MQTT_USER = "USER"
 MQTT_PWD = "PASSWORD"
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
@@ -20,6 +20,7 @@ SUB_TOPIC = "LOLICON/BUTTON"
 
 # Pico Config
 knob = ADC(Pin(27))
+ldr = ADC(Pin(26))
 rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
 
 class PixelColor:
@@ -28,6 +29,7 @@ class PixelColor:
 	self.intensity = 0
 	self.value = [0, 0, 0]
 	self.rgb = rgb
+	self.is_off = False
 	self.update()
     
     def toggle(self):
@@ -39,7 +41,20 @@ class PixelColor:
 	self.value = [0, 0, 0]
 	self.update()
 
+    def turn_off(self):
+	self.is_off = True
+	self.update()
+
+    def turn_on(self):
+	self.is_off = False
+	self.update()
+
     def update(self):
+	if self.is_off:
+	    self.rgb[0] = (0, 0, 0)
+	    self.rgb.write()
+	    return
+
 	self.value[self.color_idx] = self.intensity
 	self.rgb[0] = tuple(self.value)
 	self.rgb.write()
@@ -80,6 +95,13 @@ client.connect()
 client.subscribe(SUB_TOPIC)
 
 while True:
+    ldr_val = ldr.read_u16() * 100 / 65535
+
+    if ldr_val < 50:
+	pixel_color.turn_on()
+    else:
+	pixel_color.turn_off()
+
     client.check_msg()
     calculate_color_intensity()
     pixel_color.update()
