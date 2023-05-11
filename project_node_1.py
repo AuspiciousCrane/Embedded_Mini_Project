@@ -2,7 +2,7 @@ import machine
 import network
 import ubinascii
 import time
-from machine import Pin, ADC
+from machine import Pin, ADC, Timer
 from umqttsimple import MQTTClient
 from neopixel import NeoPixel
 
@@ -19,10 +19,6 @@ CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 SUB_TOPIC = "LOLICON/BUTTON"
 
 # Pico Config
-knob = ADC(Pin(27))
-ldr = ADC(Pin(26))
-rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
-
 class PixelColor:
     def __init__(self, rgb):
 	self.color_idx = 0
@@ -69,12 +65,28 @@ class PixelColor:
     def get_color_val(self):
 	return tuple(self.value)
 
-pixel_color = PixelColor(rgb_led)
 	
 def calculate_color_intensity():
     global knob, pixel_color
     intensity = knob.read_u16() * 255 / 65535
     pixel_color.set_intensity(intensity)
+
+def poll_ldr(p):
+    global ldr, pixel_color
+    ldr_val = ldr.read_u16() * 100 / 65535
+
+    if ldr_val < 50:
+	pixel_color.turn_on()
+    else:
+	pixel_color.turn_off()
+
+
+knob = ADC(Pin(27))
+ldr = ADC(Pin(26))
+rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
+
+ldr_timer = Timer(period = 500, mode = Timer.PERIODIC, callback = poll_ldr)
+pixel_color = PixelColor(rgb_led)
 
 # Connecting to WiFi
 nic = network.WLAN(network.STA_IF)
@@ -95,13 +107,6 @@ client.connect()
 client.subscribe(SUB_TOPIC)
 
 while True:
-    ldr_val = ldr.read_u16() * 100 / 65535
-
-    if ldr_val < 50:
-	pixel_color.turn_on()
-    else:
-	pixel_color.turn_off()
-
     client.check_msg()
     calculate_color_intensity()
     pixel_color.update()
