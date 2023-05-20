@@ -72,13 +72,15 @@ class PixelColor:
 	self.value[self.color_idx] = self.intensity
 	self.rgb[0] = tuple(self.value)
 
-	if self.mqtt is not None:
-	    self.mqtt.publish("LOLICON/RGB", str(self.value))
 	self.rgb.write()
 
     def set_intensity(self, intensity):
 	self.intensity = int(intensity)
 	self.update()
+
+    def publish_rgb(self):
+	if self.mqtt is not None:
+	    self.mqtt.publish("LOLICON/RGB", str(self.value))
 
     def get_brightness(self):
 	return self.intensity * 100 / 255
@@ -137,6 +139,8 @@ btn.irq(btn_callback, trigger = Pin.IRQ_FALLING)
 
 pixel_color = PixelColor(rgb_led)
 eeprom = AT24C()
+
+publish_rgb_timer = Timer(period = 3000, mode = Timer.PERIODIC, callback = lambda x: pixel_color.publish_rgb())
 
 # Try Reading value of EEPROM
 color_str = bytearray(16)
