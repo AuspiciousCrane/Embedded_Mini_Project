@@ -110,6 +110,7 @@ color_str = bytearray(9)
 
 eeprom.read(0, color_str)
 read_color = list(map(lambda t: t.strip(), color_str.decode().strip('()').split(',')))
+read_color = list(map(lambda x: int(x), read_color))
 pixel_color.set_color_val(read_color)
 
 # Connecting to WiFi
