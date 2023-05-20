@@ -5,15 +5,16 @@ import time
 from machine import Pin, ADC, Timer
 from umqttsimple import MQTTClient
 from neopixel import NeoPixel
+from EEPROM import AT24C
 
 # WiFi Credentials
-SSID = "SSID"
-PWD = "PASSWORD"
+SSID = "Shoukaku"
+PWD = "00000000"
 
 # MQTT Config
-MQTT_SERVER = "SOME SERVER"
-MQTT_USER = "USER"
-MQTT_PWD = "PASSWORD"
+MQTT_SERVER = "danceoftaihou.live"
+MQTT_USER = "google"
+MQTT_PWD = "enpassant"
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 
 SUB_TOPIC = "LOLICON/BUTTON"
@@ -50,7 +51,6 @@ class PixelColor:
 	    self.rgb[0] = (0, 0, 0)
 	    self.rgb.write()
 	    return
-
 	self.value[self.color_idx] = self.intensity
 	self.rgb[0] = tuple(self.value)
 	self.rgb.write()
@@ -65,7 +65,12 @@ class PixelColor:
     def get_color_val(self):
 	return tuple(self.value)
 
+    def set_color_val(self, val):
+	self.value = val
+	self.color_idx = self.value.index(max(self.value))
+
 	
+# Declaring Functions
 def calculate_color_intensity():
     global knob, pixel_color
     intensity = knob.read_u16() * 255 / 65535
@@ -80,13 +85,32 @@ def poll_ldr(p):
     else:
 	pixel_color.turn_off()
 
+def write_to_eeprom(i):
+    global eeprom, pixel_color
+    color_val = pixel_color.get_color_val()
+    rgb_str = str.encode(str(color_val))
+    
+    eeprom.write(0, rgb_str)
+    print("SAVED")
 
+
+# Declaring Variables
 knob = ADC(Pin(27))
 ldr = ADC(Pin(26))
 rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
 
 ldr_timer = Timer(period = 500, mode = Timer.PERIODIC, callback = poll_ldr)
+eeprom_timer = Timer(period = 1000, mode = Timer.PERIODIC, callback = write_to_eeprom)
+
 pixel_color = PixelColor(rgb_led)
+eeprom = AT24C()
+
+# Try Reading value of EEPROM
+color_str = bytearray(9)
+
+eeprom.read(0, color_str)
+read_color = list(map(lambda t: t.strip(), color_str.decode().strip('()').split(',')))
+pixel_color.set_color_val(read_color)
 
 # Connecting to WiFi
 nic = network.WLAN(network.STA_IF)
