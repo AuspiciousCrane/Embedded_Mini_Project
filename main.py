@@ -93,11 +93,19 @@ class PixelColor:
 
     def set_color_val(self, val):
 	self.value = val
-	self.color_idx = self.value.index(max(self.value))
 
 	
+# Declaring Variables
+knob = ADC(Pin(27))
+ldr = ADC(Pin(26))
+rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
+btn = Pin(3, mode = Pin.IN, pull = Pin.PULL_UP)
+
+pixel_color = PixelColor(rgb_led)
+eeprom = AT24C()
+
 # Declaring Functions
-def calculate_color_intensity():
+def calculate_color_intensity(a):
     global knob, pixel_color
     intensity = knob.read_u16() * 255 / 65535
     pixel_color.set_intensity(intensity)
@@ -118,6 +126,7 @@ def write_to_eeprom(i):
     while len(color_val) is not 16:
 	color_val = color_val + ")"
     rgb_str = str.encode(color_val)
+    print(color_val)
     
     eeprom.write(0, rgb_str)
     print("SAVED")
@@ -126,19 +135,11 @@ def btn_callback(i):
     global pixel_color
     pixel_color.toggle()
 
-# Declaring Variables
-knob = ADC(Pin(27))
-ldr = ADC(Pin(26))
-rgb_led = NeoPixel(Pin(22, mode = Pin.OUT), 1)
-btn = Pin(3, mode = Pin.IN, pull = Pin.PULL_UP)
-
 ldr_timer = Timer(period = 500, mode = Timer.PERIODIC, callback = poll_ldr)
+intensity = Timer(period = 200, mode = Timer.PERIODIC, callback = calculate_color_intensity)
 eeprom_timer = Timer(period = 1000, mode = Timer.PERIODIC, callback = write_to_eeprom)
 
 btn.irq(btn_callback, trigger = Pin.IRQ_FALLING)
-
-pixel_color = PixelColor(rgb_led)
-eeprom = AT24C()
 
 publish_rgb_timer = Timer(period = 3000, mode = Timer.PERIODIC, callback = lambda x: pixel_color.publish_rgb())
 
@@ -176,7 +177,7 @@ pixel_color.set_mqtt_client(client)
 
 while True:
     client.check_msg()
-    calculate_color_intensity()
+    #calculate_color_intensity()
     pixel_color.update()
     time.sleep_ms(10)
 
